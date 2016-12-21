@@ -1,0 +1,225 @@
+<?php
+/**
+ * @file
+ * Extra field properties module.
+ */
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function extra_field_properties_entity_property_info_alter(&$info) {
+  // Add watcher, so that we may clear the field cache, when the property
+  // cache is cleared.
+  foreach ($info as $entity_type => &$entity_type_info) {
+    if (!isset($watcher)) {
+      $watcher = new ExtraFieldPropertiesDrupalStaticResetWatcher('field_cache_clear');
+    }
+    $entity_type_info['watcher'] = $watcher;
+  }
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ *
+ * Expose entity properties as extra fields.
+ */
+function extra_field_properties_field_extra_fields() {
+  $entity_infos = entity_get_info();
+  $info = [];
+
+  // Database column type to property type.
+  $type_mapping = [
+    'decimal' => 'decimal',
+    'number' => 'decimal',
+    'float' => 'decimal',
+    'double' => 'decimal',
+    'varchar' => 'text',
+    'int' => 'integer',
+  ];
+
+  // Apply extra fields to all entities.
+  foreach ($entity_infos as $entity_type => $entity_info) {
+    $properties = entity_get_property_info($entity_type);
+    // Skip, if no properties.
+    if (empty($properties['properties'])) {
+      continue;
+    }
+
+    foreach ($properties['properties'] as $name => $property_info) {
+      // Fields are not properties.
+      if (!empty($property_info['field'])) {
+        continue;
+      }
+
+      // Only expose property as an extra field if the property has a schema
+      // field in the database. This is to avoid all kinds of arbitrary
+      // properties being exposed as extra fields, like node->is_new.
+      // We still wan't computed properties though, like term->node_count.
+      if (empty($property_info['schema field']) && empty($property_info['computed'])) {
+        continue;
+      }
+
+      // Expose on all bundles, and hide by default.
+      foreach (array_keys($entity_info['bundles']) as $bundle) {
+        $info[$entity_type][$bundle]['display']['property_' . $name] = array(
+          'label' => $property_info['label'],
+          'description' => $property_info['description'],
+          'weight' => 30,
+          'visible' => FALSE,
+          'property' => TRUE,
+        );
+
+        // Determine extra field type for the Extra Field Formatter module.
+        $type = NULL;
+        if (isset($property_info['type'])) {
+          // Property already defines a type.
+          $type = $property_info['type'];
+        }
+        elseif (isset($property_info['schema field'])) {
+          // Property did not define a type. Let's grab it from the schema if
+          // possible.
+          if (!empty($entity_info['base table'])) {
+            $schema = drupal_get_schema($entity_info['base table']);
+            if (isset($schema['fields'][$property_info['schema field']]['type'])) {
+              $field_type = $schema['fields'][$property_info['schema field']]['type'];
+
+              // We have the database type of the column. Let's map it to
+              // something useful or default to type: text.
+              $type = isset($type_mapping[$field_type]) ? $type_mapping[$field_type] : 'text';
+            }
+          }
+        }
+
+        // Supply type if we found one.
+        if ($type) {
+          $multiple = preg_match('/^list\<(.*)\>/', $type, $matches) ? TRUE : FALSE;
+          $type = $multiple ? $matches[1] : $type;
+          $info[$entity_type][$bundle]['display']['property_' . $name]['extra field type'] = $type;
+          $info[$entity_type][$bundle]['display']['property_' . $name]['multiple'] = $multiple;
+        }
+      }
+    }
+  }
+  return $info;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Default properties to be hidden on displays.
+ */
+function extra_field_properties_form_field_ui_display_overview_form_alter(&$form, &$form_state) {
+
+  $entity_type = $form['#entity_type'];
+  $bundle = $form['#bundle'];
+  $view_mode = $form['#view_mode'];
+
+  $bundle_settings = field_bundle_settings($entity_type, $bundle);
+  $extra_fields_info = field_info_extra_fields($entity_type, $bundle, 'display');
+
+  // Apply the default "visible" setting for each extra field.
+  foreach ($form['#extra'] as $extra_field_name) {
+    $field_form = &$form['fields'][$extra_field_name];
+
+    // Prefix property human names.
+    if (!empty($extra_fields_info[$extra_field_name]['property'])) {
+      $field_form['human_name']['#prefix'] = t('Property') . ': ';
+    }
+
+    // If no settings exist for this extra field, respect the default visiblity.
+    if (isset($bundle_settings['extra_fields']['display'][$extra_field_name][$view_mode])) {
+      continue;
+    }
+
+    // Found default visible setting. Apply it to the form element.
+    if (isset($extra_fields_info[$extra_field_name]['visible'])) {
+      $type = &$field_form['format']['type'];
+      $type['#default_value'] = $extra_fields_info[$extra_field_name]['visible'] ? $type['#default_value'] : 'hidden';
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_view().
+ */
+function extra_field_properties_entity_view($entity, $entity_type, $view_mode, $langcode) {
+
+  // There need to be properties on the entity for us to do anything.
+  $properties = entity_get_property_info($entity_type);
+  if (empty($properties['properties'])) {
+    return;
+  }
+
+  // Setup wrapper and acquire extra field settings.
+  $wrapper = entity_metadata_wrapper($entity_type, $entity);
+  $bundle = $wrapper->getBundle();
+  $bundle_settings = field_bundle_settings($entity_type, $bundle);
+  $extra_fields_info = field_info_extra_fields($entity_type, $bundle, 'display');
+
+  // Add the properties to the entity's content as extra fields.
+  foreach ($properties['properties'] as $name => $info) {
+    $extra_field_name = 'property_' . $name;
+
+    if (empty($extra_fields_info[$extra_field_name]['property'])) {
+      continue;
+    }
+    $extra_field_info = $extra_fields_info[$extra_field_name];
+
+    if (!isset($bundle_settings['extra_fields']['display'][$extra_field_name])) {
+      continue;
+    }
+    $display = $bundle_settings['extra_fields']['display'][$extra_field_name];
+
+    if (isset($display[$view_mode])) {
+      $display = $display[$view_mode];
+    }
+    elseif (isset($display['default'])) {
+      $display = $display['default'];
+    }
+    else {
+      continue;
+    }
+
+    // Don't make entity api do hard work, if it's not necessary.
+    if (empty($display['visible'])) {
+      continue;
+    }
+
+    // Acquire the property value through the entity metadata wrapper.
+    if (isset($wrapper->$name)) {
+      $value = $wrapper->$name->value();
+
+      $items = is_array($value) ? $value : [$value];
+      $extra_field_name = 'property_' . $name;
+
+      $content = [
+        '#markup' => is_scalar($value) ? $value : '',
+      ];
+
+      $entity->content[$extra_field_name] = [$content] + [
+        '#theme' => 'field',
+        '#label_display' => $display['label'],
+        '#title' => $extra_field_info['label'],
+        '#items' => $items,
+        '#field_type' => 'extra_field',
+        '#field_name' => $extra_field_name,
+        '#entity_type' => $entity_type,
+        '#bundle' => $bundle,
+        '#weight' => (int) $display['weight'],
+        '#property_type' => isset($info['type']) ? $info['type'] : NULL,
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_field().
+ *
+ * Add property type as class to "field" rendering.
+ */
+function extra_field_properties_preprocess_field(&$variables) {
+  if (isset($variables['element']['#property_type'])) {
+    $variables['classes_array'] = isset($variables['classes_array']) ? $variables['classes_array'] : [];
+    $variables['classes_array'][] = 'property-type-' . drupal_clean_css_identifier($variables['element']['#property_type']);
+  }
+}

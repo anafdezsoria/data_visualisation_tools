@@ -1,0 +1,910 @@
+<?php
+/**
+ * @file
+ * Property formatter module.
+ */
+
+/**
+ * Implement hook_field_extra_fields_alter().
+ */
+function extra_field_formatter_field_extra_fields_alter(&$info) {
+  // Implement some extra field types on behalf of core.
+  $core_extra_field_types['taxonomy_term']['description'] = 'text';
+
+  foreach ($core_extra_field_types as $entity_type => $extra_field_types) {
+    foreach ($extra_field_types as $extra_field_name => $extra_field_type) {
+      if (!isset($info[$entity_type])) {
+        continue;
+      }
+      foreach ($info[$entity_type] as $bundle => &$displays) {
+        if (!isset($displays['display'][$extra_field_name])) {
+          continue;
+        }
+        $displays['display'][$extra_field_name]['extra field type'] = $extra_field_type;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Extend the extra fields with label and formatter settings.
+ */
+function extra_field_formatter_form_field_ui_display_overview_form_alter(&$form, &$form_state) {
+
+  $entity_type = $form['#entity_type'];
+  $bundle = $form['#bundle'];
+  $view_mode = $form['#view_mode'];
+
+  $bundle_settings = field_bundle_settings($entity_type, $bundle);
+  $extra_fields_info = field_info_extra_fields($entity_type, $bundle, 'display');
+  $formatters = extra_field_formatter_get_extra_field_formatter_info();
+  $form_state += [
+    '#original_bundle_settings' => $bundle_settings,
+  ];
+
+  foreach ($form['#extra'] as $extra_field_name) {
+    $field_form = &$form['fields'][$extra_field_name];
+    $extra_fields_info[$extra_field_name] += [
+      'extra field type' => NULL,
+    ];
+
+    $display = [];
+
+    // Get bundle settings.
+    if (isset($bundle_settings['extra_fields']['display'][$extra_field_name][$view_mode])) {
+      $display += $bundle_settings['extra_fields']['display'][$extra_field_name][$view_mode];
+    }
+
+    // Supply with extra fields default settings.
+    if (isset($extra_fields_info[$extra_field_name])) {
+      $extra_fields_display = $extra_fields_info[$extra_field_name];
+      unset($extra_fields_display['label']);
+      $display += $extra_fields_display;
+    }
+
+    // Ensure sane defaults.
+    $display += [
+      'weight' => 0,
+      'label' => 'above',
+      'visible' => FALSE,
+      'settings' => [],
+    ];
+    $display += [
+      'type' => $display['visible'] ? 'visible' : 'hidden'
+    ];
+
+    // Check the currently selected formatter, and merge persisted values for
+    // formatter settings.
+    if (isset($form_state['values']['fields'][$extra_field_name]['type'])) {
+      $display['type'] = $form_state['values']['fields'][$extra_field_name]['type'];
+    }
+    if (isset($form_state['formatter_settings'][$extra_field_name])) {
+      $display['settings'] = $form_state['formatter_settings'][$extra_field_name];
+    }
+
+    $display['settings'] = is_array($display['settings']) ? $display['settings'] : [];
+    $display['settings'] += isset($formatters[$display['type']]['settings']) ? $formatters[$display['type']]['settings'] : [];
+
+    $extra_field_formatters = _extra_field_formatter_get_available_formatters($extra_fields_info[$extra_field_name]['extra field type'], !empty($extra_fields_info[$extra_field_name]['multiple']));
+    $type = &$field_form['format']['type'];
+    $type['#options'] = $extra_field_formatters + [
+      'visible' => t('Visible'),
+      'hidden' => '<' . t('Hidden') . '>',
+    ];
+    $type['#default_value'] = $display['type'];
+
+    $extra_field_label_options = array(
+      'above' => t('Above'),
+      'inline' => t('Inline'),
+      'hidden' => '<' . t('Hidden') . '>',
+    );
+    unset($field_form['empty_cell']);
+    unset($field_form['label']);
+    $field_form['label'] = [
+      '#type' => 'select',
+      '#title' => t('Label display for @title', array('@title' => $extra_fields_info[$extra_field_name]['label'])),
+      '#title_display' => 'invisible',
+      '#options' => $extra_field_label_options,
+      '#default_value' => $display['label'],
+    ];
+
+    $formatter = isset($formatters[$display['type']]) ? $formatters[$display['type']] : NULL;
+
+    // Base button element for the various formatter settings actions.
+    $base_button = array(
+      '#submit' => array('field_ui_display_overview_multistep_submit'),
+      '#ajax' => array(
+        'callback' => 'field_ui_display_overview_multistep_js',
+        'wrapper' => 'field-display-overview-wrapper',
+        'effect' => 'fade',
+      ),
+      '#field_name' => $extra_field_name,
+    );
+
+    // Display a summary of the current formatter settings.
+    if ($formatter && $form_state['formatter_settings_edit'] == $extra_field_name) {
+      // We are currently editing this field's formatter settings. Display the
+      // settings form and submit buttons.
+      $field_form['format']['settings_edit_form'] = array();
+
+      $settings_form = array();
+      $function = $formatter['module'] . '_field_extra_fields_formatter_settings_form';
+      if (function_exists($function)) {
+        $settings_form = $function($extra_field_name, $view_mode, $display, $form, $form_state);
+      }
+
+      if ($settings_form) {
+        $field_form['format']['#cell_attributes'] = array('colspan' => 3);
+        $field_form['format']['settings_edit_form'] = array(
+          '#type' => 'container',
+          '#attributes' => array('class' => array('field-formatter-settings-edit-form')),
+          '#parents' => array('fields', $extra_field_name, 'settings_edit_form'),
+          'label' => array(
+            '#markup' => t('Format settings:') . ' <span class="formatter-name">' . $formatter['label'] . '</span>',
+          ),
+          'settings' => $settings_form,
+          'actions' => array(
+            '#type' => 'actions',
+            'save_settings' => $base_button + array(
+              '#type' => 'submit',
+              '#name' => $extra_field_name . '_formatter_settings_update',
+              '#value' => t('Update'),
+              '#op' => 'update',
+            ),
+            'cancel_settings' => $base_button + array(
+              '#type' => 'submit',
+              '#name' => $extra_field_name . '_formatter_settings_cancel',
+              '#value' => t('Cancel'),
+              '#op' => 'cancel',
+              // Do not check errors for the 'Cancel' button, but make sure we
+              // get the value of the 'formatter type' select.
+              '#limit_validation_errors' => array(
+                array('fields', $extra_field_name, 'type')
+              ),
+            ),
+          ),
+        );
+        $field_form['#attributes']['class'][] = 'field-formatter-settings-editing';
+      }
+
+    }
+    elseif ($formatter && ($summary = module_invoke($formatter['module'], 'field_extra_fields_formatter_settings_summary', $extra_field_name, $view_mode, $display))) {
+
+      if ($summary) {
+        $field_form['settings_summary'] = array(
+          '#markup' => '<div class="field-formatter-summary">' . $summary . '</div>',
+          '#cell_attributes' => array('class' => array('field-formatter-summary-cell')),
+        );
+        $field_form['settings_edit'] = $base_button + array(
+          '#type' => 'image_button',
+          '#name' => $extra_field_name . '_formatter_settings_edit',
+          '#src' => 'misc/configure.png',
+          '#attributes' => array('class' => array('field-formatter-settings-edit'), 'alt' => t('Edit')),
+          '#op' => 'edit',
+          // Do not check errors for the 'Edit' button, but make sure we get
+          // the value of the 'formatter type' select.
+          '#limit_validation_errors' => array(
+            array('fields', $extra_field_name, 'type')
+          ),
+          '#prefix' => '<div class="field-formatter-settings-edit-wrapper">',
+          '#suffix' => '</div>',
+        );
+      }
+    }
+
+    $reorder = ['human_name', 'weight', 'parent_wrapper', 'label', 'format', 'settings_summary', 'settings_edit'];
+    foreach ($reorder as $element_name) {
+      $element = $field_form[$element_name];
+      unset($field_form[$element_name]);
+      $field_form[$element_name] = $element;
+    }
+  }
+  $form['#submit'][] = 'extra_field_formatter_form_field_ui_display_overview_form_alter_submit';
+}
+
+/**
+ * Submit handler for extra fields settings.
+ */
+function extra_field_formatter_form_field_ui_display_overview_form_alter_submit($form, &$form_state) {
+  $form_values = $form_state['values'];
+  $entity_type = $form['#entity_type'];
+  $bundle = $form['#bundle'];
+  $view_mode = $form['#view_mode'];
+  $bundle_settings = $form_state['#original_bundle_settings'];
+
+  foreach ($form['#extra'] as $extra_field_name) {
+    $values = $form_values['fields'][$extra_field_name];
+
+    $settings = array();
+    if (isset($values['settings_edit_form']['settings'])) {
+      $settings = $values['settings_edit_form']['settings'];
+    }
+    elseif (isset($form_state['formatter_settings'][$extra_field_name])) {
+      $settings = $form_state['formatter_settings'][$extra_field_name];
+    }
+    elseif (isset($bundle_settings['extra_fields']['display'][$extra_field_name][$view_mode]['settings'])) {
+      $settings = $bundle_settings['extra_fields']['display'][$extra_field_name][$view_mode]['settings'];
+    }
+
+    $bundle_settings['extra_fields']['display'][$extra_field_name][$view_mode] = [
+      'weight' => $values['weight'],
+      'label' => $values['label'],
+      'type' => $values['type'],
+      'visible' => $values['type'] !== 'hidden' ? TRUE : FALSE,
+      'settings' => $settings,
+    ];
+  }
+  field_bundle_settings($entity_type, $bundle, $bundle_settings);
+}
+
+/**
+ * Implements hook_entity_view().
+ */
+function extra_field_formatter_entity_view($entity, $entity_type, $view_mode, $langcode) {
+  $entity->content['#original_entity'] = $entity;
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function extra_field_formatter_entity_view_alter(&$build, $entity_type) {
+  global $language;
+
+  // If #original_entity has not been set, then that means hook_entity_view()
+  // has not been invoked. This can happen fx when using the "Node content"
+  // cTools content type, and checking the option "no extras".
+  if (!isset($build['#original_entity'])) {
+    return;
+  }
+
+  $entity = $build['#original_entity'];
+  $bundle = $build['#bundle'];
+  $view_mode = $build['#view_mode'];
+  $extra_fields_info = field_info_extra_fields($entity_type, $bundle, 'display');
+  $bundle_settings = field_bundle_settings($entity_type, $bundle);
+  $formatters = extra_field_formatter_get_extra_field_formatter_info();
+
+  // Add view mode and language to render array for field extra, so
+  // that our formatter has the correct settings.
+  foreach ($extra_fields_info as $extra_field_name => $info) {
+    if (!isset($build[$extra_field_name])) {
+      continue;
+    }
+
+    if (!isset($bundle_settings['extra_fields']['display'][$extra_field_name])) {
+      continue;
+    }
+    $display = $bundle_settings['extra_fields']['display'][$extra_field_name];
+
+    if (isset($display[$view_mode]) && isset($display[$view_mode]['type'])) {
+      $display = $display[$view_mode];
+    }
+    elseif (isset($display['default']) && isset($display['default']['type']) && empty($bundle_settings['view_modes'][$view_mode]['custom_settings'])) {
+      $display = $display['default'];
+    }
+    else {
+      continue;
+    }
+
+    $formatter = isset($formatters[$display['type']]) ? $formatters[$display['type']] : NULL;
+    if (empty($formatter)) {
+      continue;
+    }
+
+    $display['settings'] += $formatter['settings'];
+    $display['extra field info'] = $extra_fields_info[$extra_field_name];
+    $function = $formatter['module'] . '_field_extra_fields_formatter_view';
+
+    // We need some items in order to provide our formatter with something.
+    if (isset($build[$extra_field_name]['#items'])) {
+      $items = $build[$extra_field_name]['#items'];
+    }
+    else {
+      $items = _extra_field_formatter_find_items($build[$extra_field_name]);
+    }
+
+    if ($items && $function && function_exists($function)) {
+      $content = $function($entity_type, $entity, $extra_field_name, $language->language, $items, $display);
+
+      // Sanity check.
+      if (!is_array($content)) {
+        continue;
+      }
+
+      $build[$extra_field_name] = $content + [
+        '#theme' => 'field',
+        '#label_display' => $display['label'],
+        '#title' => $info['label'],
+        '#items' => $items,
+        '#field_type' => 'extra_field',
+        '#field_name' => $extra_field_name,
+        '#entity_type' => $entity_type,
+        '#bundle' => $bundle,
+        '#view_mode' => $view_mode,
+        '#weight' => (int) $display['weight'],
+        '#property_type' => isset($build[$extra_field_name]['#property_type']) ? $build[$extra_field_name]['#property_type'] : NULL,
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_field_extra_fields_formatter_info().
+ */
+function extra_field_formatter_field_extra_fields_formatter_info() {
+  $entity_info = entity_get_info();
+
+  $info = [];
+  $info['date'] = [
+    'label' => t('Date'),
+    'description' => t('Format extra field as date.'),
+    'extra field types' => ['date'],
+    'settings' => ['format' => 'medium'],
+  ];
+  $info['uri'] = [
+    'label' => t('URI'),
+    'description' => t('URI.'),
+    'extra field types' => ['uri'],
+    'settings' => [
+      'link' => TRUE,
+      'link_title' => '',
+      'append_query' => FALSE,
+    ],
+  ];
+  $info['boolean'] = [
+    'label' => t('Boolean'),
+    'description' => t('Boolean.'),
+    'extra field types' => ['boolean'],
+    'settings' => [
+      'true' => 'Yes',
+      'false' => 'No'
+    ],
+  ];
+  $info['entity'] = [
+    'label' => t('Rendered entity'),
+    'description' => t('Rendered entity.'),
+    'extra field types' => array_keys($entity_info),
+    'settings' => ['view_mode' => 'full'],
+  ];
+
+  // Implement text formatters, if text module is enabled.
+  // @see text_field_formatter_info()
+  if (module_exists('text')) {
+    $info['text_default'] = [
+      'label' => t('Text'),
+      'extra field types' => ['text', 'token'],
+    ];
+    $info['text_plain'] = [
+      'label' => t('Plain text'),
+      'extra field types' => ['text', 'token'],
+    ];
+    $info['text_trimmed'] = [
+      'label' => t('Trimmed'),
+      'extra field types' => ['text', 'token'],
+      'settings' => [
+        'trim_length' => 600,
+        'text_processing' => FALSE,
+        'text_format' => NULL,
+      ],
+    ];
+  }
+
+  // Implement number formatters, if number module is enabled.
+  // @see number_field_formatter_info()
+  if (module_exists('number')) {
+    $info['number_integer'] = [
+      'label' => t('Integer'),
+      'extra field types' => ['integer', 'decimal'],
+      'settings' => [
+        'thousand_separator' => '',
+        'decimal_separator' => '.',
+        'scale' => 0,
+        'prefix_suffix' => TRUE,
+        'prefix' => '',
+        'suffix' => '',
+      ],
+    ];
+    $info['number_decimal'] = [
+      'label' => t('Decimal'),
+      'extra field types' => ['integer', 'decimal'],
+      'settings' => [
+        'thousand_separator' => '',
+        'decimal_separator' => '.',
+        'scale' => 2,
+        'prefix_suffix' => TRUE,
+        'prefix' => '',
+        'suffix' => '',
+      ],
+    ];
+  }
+  return $info;
+}
+
+/**
+ * Implements hook_field_extra_fields_formatter_settings_form().
+ */
+function extra_field_formatter_field_extra_fields_formatter_settings_form($extra_field_name, $view_mode, $display, $form, &$form_state) {
+
+  // Dispatch hook.
+  if ($function = _extra_field_formatter_get_formatter_function($display['type'], 'settings_form')) {
+    return $function($extra_field_name, $view_mode, $display, $form, $form_state);
+  }
+}
+
+/**
+ * Implements hook_field_extra_fields_formatter_settings_summary().
+ */
+function extra_field_formatter_field_extra_fields_formatter_settings_summary($extra_field_name, $view_mode, $display) {
+
+  // Dispatch hook.
+  if ($function = _extra_field_formatter_get_formatter_function($display['type'], 'settings_summary')) {
+    return $function($extra_field_name, $view_mode, $display);
+  }
+}
+
+/**
+ * Implements hook_field_extra_fields_formatter_view().
+ */
+function extra_field_formatter_field_extra_fields_formatter_view($entity_type, $entity, $extra_field_name, $langcode, $items, $display) {
+
+  // Dispatch hook.
+  if ($function = _extra_field_formatter_get_formatter_function($display['type'], 'view')) {
+    return $function($entity_type, $entity, $extra_field_name, $langcode, $items, $display);
+  }
+}
+
+/**
+ * Determine function call for real hook_field_extra_fields_<type>_<hook>.
+ */
+function _extra_field_formatter_get_formatter_function($type, $hook) {
+  $hooks = [
+    'settings_form' => [
+      'date' => 'date',
+      'text_trimmed' => 'text',
+      'number_integer' => 'number',
+      'number_decimal' => 'number',
+      'entity' => 'entity',
+      'uri' => 'uri',
+      'boolean' => 'boolean',
+    ],
+    'settings_summary' => [
+      'date' => 'date',
+      'text_trimmed' => 'text',
+      'number_integer' => 'number',
+      'number_decimal' => 'number',
+      'entity' => 'entity',
+      'uri' => 'uri',
+      'boolean' => 'boolean',
+    ],
+    'view' => [
+      'date' => 'date',
+      'text_default' => 'text',
+      'text_plain' => 'text',
+      'text_trimmed' => 'text',
+      'number_integer' => 'number',
+      'number_decimal' => 'number',
+      'entity' => 'entity',
+      'uri' => 'uri',
+      'boolean' => 'boolean',
+    ],
+  ];
+  $suffix = isset($hooks[$hook][$type]) ? $hooks[$hook][$type] : '';
+  $function = '_extra_field_formatter_field_extra_fields_formatter_' . $hook . '_' . $suffix;
+  return function_exists($function) ? $function : NULL;
+}
+
+/**
+ * View function for extra fields formatter date.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_view_date($entity_type, $entity, $extra_field_name, $langcode, $items, $display) {
+  $element = [];
+  $settings = $display['settings'];
+
+  foreach ($items as $delta => $item) {
+    $element[$delta] = array('#markup' => format_date($item, $settings['format']));
+  }
+  return $element;
+}
+
+/**
+ * View function for extra fields formatter text.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_view_text($entity_type, $entity, $extra_field_name, $langcode, $items, $display) {
+  $settings = $display['settings'];
+  $settings += [
+    'text_processing' => FALSE,
+    'text_format' => NULL,
+  ];
+  list($field, $instance) = _extra_field_formatter_create_fake_field_instance($extra_field_name);
+
+  $instance['settings'] += [
+    'text_processing' => $settings['text_processing'],
+  ];
+
+  $format = $settings['text_processing'] && isset($filter_formats[$settings['text_format']]) ? $settings['text_format'] : NULL;
+
+  foreach ($items as $delta => &$item) {
+    if (is_scalar($item)) {
+      $item = ['value' => $item, 'format' => $format];
+    }
+  }
+  return text_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display);
+}
+
+/**
+ * View function for extra fields formatter number.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_view_number($entity_type, $entity, $extra_field_name, $langcode, $items, $display) {
+  $settings = $display['settings'];
+  list($field, $instance) = _extra_field_formatter_create_fake_field_instance($extra_field_name);
+
+  $instance['settings'] += [
+    'prefix' => $settings['prefix'],
+    'suffix' => $settings['suffix'],
+  ];
+
+  foreach ($items as $delta => &$item) {
+    $item = ['value' => $item];
+  }
+  return number_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display);
+}
+
+/**
+ * View function for extra fields formatter entity.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_view_entity($entity_type, $entity, $extra_field_name, $langcode, $items, $display) {
+  $element = [];
+  $settings = $display['settings'];
+
+  $item_entity_type = $display['extra field info']['extra field type'];
+
+  foreach ($items as $delta => $item) {
+    $wrapper = entity_metadata_wrapper($item_entity_type, $item);
+    $element[$delta] = $wrapper->view($settings['view_mode'], NULL, FALSE);
+  }
+  return $element;
+}
+
+/**
+ * View function for extra fields formatter uri.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_view_uri($entity_type, $entity, $extra_field_name, $langcode, $items, $display) {
+  $element = [];
+  $settings = $display['settings'];
+
+  foreach ($items as $delta => $item) {
+    if ($settings['append_query'] && isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] <> '') {
+      $item .= '?' . $_SERVER['QUERY_STRING'];
+    }
+    if ($settings['link']) {
+      $item = l($settings['link_title'] ? $settings['link_title'] : $item, $item);
+    }
+    $element[$delta] = array('#markup' => $item);
+  }
+  return $element;
+}
+
+/**
+ * View function for extra fields formatter boolean.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_view_boolean($entity_type, $entity, $extra_field_name, $langcode, $items, $display) {
+  $element = [];
+  $settings = $display['settings'];
+
+  foreach ($items as $delta => $item) {
+    $element[$delta] = array('#markup' => $item ? $settings['true'] : $settings['false']);
+  }
+  return $element;
+}
+
+/**
+ * Settings form for extra fields formatter date.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_form_date($extra_field_name, $view_mode, $display, $form, &$form_state) {
+  $settings = $display['settings'];
+  $element = [];
+  $format_types = _extra_field_formatter_get_system_dates();
+  $element['format'] = [
+    '#type' => 'select',
+    '#title' => t('Select the date format to use'),
+    '#options' => $format_types,
+    '#default_value' => $settings['format'],
+  ];
+  return $element;
+}
+
+/**
+ * Settings form for extra fields formatter text.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_form_text($extra_field_name, $view_mode, $display, $form, &$form_state) {
+  $settings = $display['settings'];
+  $element = [];
+  list($field, $instance) = _extra_field_formatter_create_fake_field_instance($extra_field_name, $view_mode, $display);
+  $element['text_processing'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Filtered text'),
+    '#default_value' => $settings['text_processing'],
+  ];
+  $filter_formats = filter_formats();
+  $options = [];
+  foreach ($filter_formats as $id => $format) {
+    $options[$id] = $format->name;
+  }
+  $element['text_format'] = [
+    '#type' => 'select',
+    '#options' => $options,
+    '#title' => t('Filter'),
+    '#default_value' => $settings['text_format'],
+  ];
+  $element += text_field_formatter_settings_form($field, $instance, $view_mode, $form, $form_state);
+  return $element;
+}
+
+/**
+ * Settings form for extra fields formatter number.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_form_number($extra_field_name, $view_mode, $display, $form, &$form_state) {
+  $settings = $display['settings'];
+  $element = [];
+  list($field, $instance) = _extra_field_formatter_create_fake_field_instance($extra_field_name, $view_mode, $display);
+
+  if ($display['type'] == 'number_decimal') {
+    $element['prefix'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Prefix'),
+      '#default_value' => $settings['prefix'],
+      '#size' => 60,
+      '#description' => t("Define a string that should be prefixed to the value, like '$ ' or '&euro; '. Leave blank for none. Separate singular and plural values with a pipe ('pound|pounds')."),
+    );
+    $element['suffix'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Suffix'),
+      '#default_value' => $settings['suffix'],
+      '#size' => 60,
+      '#description' => t("Define a string that should be suffixed to the value, like ' m', ' kb/s'. Leave blank for none. Separate singular and plural values with a pipe ('pound|pounds')."),
+    );
+  }
+  $element += number_field_formatter_settings_form($field, $instance, $view_mode, $form, $form_state);
+  return $element;
+}
+
+/**
+ * Settings form for extra fields formatter entity.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_form_entity($extra_field_name, $view_mode, $display, $form, &$form_state) {
+  $settings = $display['settings'];
+  $element = [];
+
+  $entity_info = entity_get_info($display['extra field type']);
+  $options = [];
+  if (!empty($entity_info['view modes'])) {
+    foreach ($entity_info['view modes'] as $view_mode => $view_mode_settings) {
+      $options[$view_mode] = $view_mode_settings['label'];
+    }
+  }
+
+  $element['view_mode'] = array(
+    '#type' => 'select',
+    '#options' => $options,
+    '#title' => t('View mode'),
+    '#default_value' => $settings['view_mode'],
+    '#access' => count($options) > 0,
+  );
+  return $element;
+}
+
+/**
+ * Settings form for extra fields formatter uri.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_form_uri($extra_field_name, $view_mode, $display, $form, &$form_state) {
+  $settings = $display['settings'];
+  $element = [];
+  $element['link'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Link to URI'),
+    '#default_value' => $settings['link'],
+  ];
+  $element['link_title'] = [
+    '#type' => 'textfield',
+    '#title' => t('The title of the link'),
+    '#default_value' => $settings['link_title'],
+  ];
+  $element['append_query'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Append current query string to URI'),
+    '#default_value' => $settings['append_query'],
+  ];
+  return $element;
+}
+
+/**
+ * Settings form for extra fields formatter boolean.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_form_boolean($extra_field_name, $view_mode, $display, $form, &$form_state) {
+  $settings = $display['settings'];
+  $element = [];
+  $element['true'] = [
+    '#type' => 'textfield',
+    '#title' => t('When field is true'),
+    '#default_value' => $settings['true'],
+  ];
+  $element['false'] = [
+    '#type' => 'textfield',
+    '#title' => t('When field is false'),
+    '#default_value' => $settings['false'],
+  ];
+  return $element;
+}
+
+/**
+ * Settings summary for extra fields formatter date.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_summary_date($extra_field_name, $view_mode, $display) {
+  $settings = $display['settings'];
+  $format_types = _extra_field_formatter_get_system_dates();
+  return t('Display dates using the @format format', array('@format' => $format_types[$settings['format']]));
+}
+
+/**
+ * Settings summary for extra fields formatter text.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_summary_text($extra_field_name, $view_mode, $display) {
+  $settings = $display['settings'];
+  list($field, $instance) = _extra_field_formatter_create_fake_field_instance($extra_field_name, $view_mode, $display);
+  $filter_formats = filter_formats();
+  $format = $settings['text_processing'] && isset($filter_formats[$settings['text_format']]->name) ? $filter_formats[$settings['text_format']]->name : t('None');
+  $summary = text_field_formatter_settings_summary($field, $instance, $view_mode);
+  $summary .= '<br>' . t('Text format') . ': ' . $format;
+  return $summary;
+}
+
+/**
+ * Settings summary for extra fields formatter number.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_summary_number($extra_field_name, $view_mode, $display) {
+  list($field, $instance) = _extra_field_formatter_create_fake_field_instance($extra_field_name, $view_mode, $display);
+  return number_field_formatter_settings_summary($field, $instance, $view_mode);
+}
+
+/**
+ * Settings summary for extra fields formatter entity.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_summary_entity($extra_field_name, $view_mode, $display) {
+  $settings = $display['settings'];
+  $entity_info = entity_get_info($display['extra field type']);
+  if (!empty($entity_info['view modes'])) {
+    foreach ($entity_info['view modes'] as $view_mode => $view_mode_settings) {
+      $options[$view_mode] = $view_mode_settings['label'];
+    }
+  }
+  $view_mode = isset($options[$settings['view_mode']]) ? $options[$settings['view_mode']] : '<' . t('None') . '>';
+  return t('Rendered entity: @view_mode', array('@view_mode' => $view_mode));
+}
+
+/**
+ * Settings summary for extra fields formatter uri.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_summary_uri($extra_field_name, $view_mode, $display) {
+  $settings = $display['settings'];
+  $summary[] = t('Link') . ': ' . ($settings['link'] ? t('Yes') : t('No'));
+  $summary[] = t('Title') . ': ' . ($settings['link_title'] ? $settings['link_title'] : t('None'));
+  $summary[] = t('Append query string') . ': ' . ($settings['append_query'] ? t('Yes') : t('No'));
+  return implode('<br>', $summary);
+}
+
+/**
+ * Settings summary for extra fields formatter boolean.
+ */
+function _extra_field_formatter_field_extra_fields_formatter_settings_summary_boolean($extra_field_name, $view_mode, $display) {
+  $settings = $display['settings'];
+  $summary = t('True') . ': ' . $settings['true'] . '<br>';
+  $summary .= t('False') . ': ' . $settings['false'];
+  return $summary;
+}
+
+/**
+ * Get all property formatters info.
+ *
+ * @param bool $reset
+ *   Reset static cache.
+ *
+ * @return array
+ *   Array of formatter info, keyed by formatter name.
+ */
+function extra_field_formatter_get_extra_field_formatter_info($reset = FALSE) {
+  global $language;
+  $langcode = $language->language;
+
+  $formatters = &drupal_static(__FUNCTION__, NULL);
+  if (!isset($formatters) || !$reset) {
+    if ($cached = cache_get("field_extra_fields_info_formatters:$langcode", 'cache_field')) {
+      $formatters = $cached->data;
+    }
+    else {
+      $formatters = [];
+      foreach (module_implements('field_extra_fields_formatter_info') as $module) {
+        if ($infos = module_invoke($module, 'field_extra_fields_formatter_info')) {
+          foreach ($infos as &$info) {
+            $info['module'] = $module;
+            $info += [
+              'settings' => [],
+            ];
+          }
+          $formatters += $infos;
+        }
+      }
+      drupal_alter('field_extra_fields_formatter_info', $formatters);
+
+      // Set the cache if we can acquire a lock.
+      if (lock_acquire("field_extra_fields_info_formatters:$langcode")) {
+        cache_set("field_extra_fields_info_formatters:$langcode", $formatters, 'cache_field');
+        lock_release("field_extra_fields_info_formatters:$langcode");
+      }
+    }
+  }
+  return $formatters;
+}
+
+/**
+ * Get the available formatters for a specific entity type's property.
+ *
+ * @param string $type
+ *   The extra field type.
+ *
+ * @return array
+ *   Key/value pair of formatters, name => label.
+ */
+function _extra_field_formatter_get_available_formatters($type, $multiple = FALSE) {
+  $available_formatters = [];
+  if ($type) {
+    $formatters = extra_field_formatter_get_extra_field_formatter_info();
+    foreach ($formatters as $name => $info) {
+      if (in_array($type, $info['extra field types'])) {
+        $available_formatters[$name] = $multiple ? t('List') . ': ' : '';
+        $available_formatters[$name] .= $info['label'];
+      }
+    }
+  }
+  return $available_formatters;
+}
+
+/**
+ * Get available date formats in the system.
+ */
+function _extra_field_formatter_get_system_dates() {
+  $format_types = system_get_date_types();
+  if (!empty($format_types)) {
+    foreach ($format_types as $type => &$type_info) {
+      $type_info = $type_info['title'] . ' (' . format_date(time(), $type) . ')';
+    }
+  }
+  return $format_types;
+}
+
+/**
+ * Locate items within nested element.
+ */
+function _extra_field_formatter_find_items($element) {
+  $items = [];
+  unset($element['#prefix']);
+  unset($element['#suffix']);
+  $items[] = drupal_render($element);
+  return $items;
+}
+
+/**
+ * Create a fake field and field instance from an extra field.
+ */
+function _extra_field_formatter_create_fake_field_instance($extra_field_name, $view_mode = NULL, $display = NULL) {
+  $field = [];
+  $instance = [
+    'display' => [],
+    'settings' => [],
+  ];
+  if ($view_mode && $display) {
+    $instance['display'][$view_mode] = $display;
+  }
+  return [$field, $instance];
+}

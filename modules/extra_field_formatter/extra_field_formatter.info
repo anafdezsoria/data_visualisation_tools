@@ -1,0 +1,10 @@
+name = Extra field formatter
+description = Provide field formatters for extra fields.
+core = 7.x
+
+; Information added by Drupal.org packaging script on 2016-04-27
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "extra_field_formatter"
+datestamp = "1461747545"
+
