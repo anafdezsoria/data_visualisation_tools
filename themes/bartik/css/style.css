@@ -558,8 +558,8 @@ h1#site-name {
 /* ----------------- Featured ----------------- */
 
 #featured {
-  text-align: center;
-  font-size: 1.643em;
+  text-align: /*center*/left;
+  font-size: /*1.643em*/0.9em;
   font-weight: normal;
   line-height: 1.4;
   padding: 20px 0 45px;
