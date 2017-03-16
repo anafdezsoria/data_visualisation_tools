@@ -367,7 +367,7 @@ h1#site-name {
   background: #fefefe;
   background: rgba(255, 255, 255, 0.7);
   border-color: #ccc;
-  border-color: rgba(255, 255, 255, 0.3);
+  /*border-color: rgba(255, 255, 255, 0.3);*/
   margin-right: 2px; /* LTR */
   width: 120px;
 }
@@ -408,6 +408,9 @@ h1#site-name {
 /* User Login block in the header region */
 .region-header #block-user-login {
   width: auto;
+  border: solid 1px;
+  padding-left: 8px;
+  padding-right: 8px
 }
 .region-header #block-user-login .content {
   margin-top: 2px;
@@ -482,6 +485,16 @@ h1#site-name {
 /* --------------- Main Menu ------------ */
 
 #main-menu {
+	/*background: #fff url(http://52.50.205.146:8890/data_visualisation_catalogue/themes/bartik/images/menu_background.png) bottom center no-repeat;*/
+    /*background: #fff url(http://data.europa.eu/euodp/sites/all/themes/ecopendataheader/images/menu.png) bottom center no-repeat;*/
+	background: #fff url(../images/menu_background.png) bottom center no-repeat;
+	position: relative;
+	background-size: 100% 100%;
+	margin-left: 0px !important;
+	margin-right: 0px !important;
+	padding: 7px 0 0px 0;
+
+
   clear: both;
 }
 #main-menu-links {
@@ -498,13 +511,19 @@ h1#site-name {
 #main-menu-links a {
   /*color: #333;
   background: #ccc;
-  background: rgba(255, 255, 255, 0.7);*/
-  background: #48537E !important;
+  background: rgba(255, 255, 255, 0.7);
+  background: #48537E !important;*/
+  
+  /*background: repeat-x center center url(http://data.europa.eu/euodp/sites/all/themes/ecopendataheader/images/menubuttonbg.png);*/
+  background: repeat-x center center url(../images/menu_button_background.png);
+  font-weight: bold;
+  padding: 0 8px;
+  
   color: #ffffff;
   float: left; /* LTR */
   height: 2.4em;
   line-height: 2.4em;
-  padding: 0 0.8em;
+  /*padding: 0 0.8em;*/
   text-decoration: none;
   text-shadow: 0 1px /*#eee*/#a9a9a9;
   -khtml-border-radius-topleft: 8px;
@@ -520,26 +539,44 @@ h1#site-name {
 #main-menu-links a:focus {
   /*background: #f6f6f2;
   background: rgba(255, 255, 255, 0.95);*/
-  background: #094793;
+  
+  background: #fff;
+  color: #505d8c;
+  font-weight: bold;
+  text-decoration: underline;
+  
+  /*background: #094793;
   color: #ffffff;
-  text-shadow: 1px 1px #a9a9a9;  
+  text-shadow: 1px 1px #a9a9a9;*/
 }
 #main-menu-links a:active {
   /*background: #b3b3b3;
   background: rgba(255, 255, 255, 1);*/
-  background: #094793;
+  
+  background: #fff;
+  color: #505d8c;
+  font-weight: bold;
+  
+  /*background: #094793;
   color: #ffffff;
-  text-shadow: 1px 1px #a9a9a9;
+  text-shadow: 1px 1px #a9a9a9;*/
+}
+
+#main-menu-links a.active-trail{
+	color: #505d8c;
 }
 
 #main-menu-links li a.active {
   border-bottom: none;
-  background: #094793 !important;
+  
+  background: #fff;
+  color: #505d8c;
+  font-weight: bold;
 }
 .featured #main-menu-links li a:active,
 .featured #main-menu-links li a.active {
-  background: #f0f0f0;
-  background: rgba(240, 240, 240, 1.0);
+  /*background: #f0f0f0;
+  background: rgba(240, 240, 240, 1.0);*/
 }
 
 /* --------------- Secondary Menu ------------ */
@@ -564,14 +601,21 @@ h1#site-name {
 /* ----------------- Featured ----------------- */
 
 #featured {
+	/*background: #fff url(http://data.europa.eu/euodp/sites/all/themes/ecopendataheader/images/descborder.png) bottom center no-repeat;*/
+	background: #fff url(../images/featured_background.png) bottom center no-repeat;
+	margin: 0px auto 10px auto;
+    position: relative;
+    padding: 10px 30px 40px 30px;
+	background-size: 100% 100%;
+
   text-align: /*center*/left;
   font-size: /*1.643em*/0.9em;
   font-weight: normal;
   line-height: 1.4;
-  padding: 20px 0 45px;
+  /*padding: 20px 0 45px;
   margin: 0;
   background: #f0f0f0;
-  background: rgba(30, 50, 10, 0.08);
+  background: rgba(30, 50, 10, 0.08);*/
   border-bottom: 1px solid #e7e7e7;
   text-shadow: 1px 1px #fff;
 }
@@ -1095,13 +1139,35 @@ div.messages {
 
 .breadcrumb {
   font-size: 0.929em;
-  background: #094793;
-  color: #ffffff !important;
+  /*background: #094793; 
+  color: #ffffff !important; */
+  
+/* Added */
+  clear: both;
+  background-size: 100% 100%;
+  margin-left: 0px !important;
+  margin-right: 0px !important;
+  padding-left: 10px;
+  margin-bottom: -1px;
+  padding-top: 1px;
+  
+  background-color: #e9eff3;
+  border-top: 1px #CCC;
+  color: #646464 !important;
+  padding-bottom: 2px;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", Tahoma, Verdana, Arial, sans-serif;
+  line-height: 1.5;
 }
 
 .breadcrumb a{
-  color: #ffffff !important;
-  padding: 0 10px;
+  /* color: #ffffff !important;
+  padding: 0 10px; */
+  
+  /* Added */
+  
+  color: #646464 !important;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", Tahoma, Verdana, Arial, sans-serif;
+  line-height: 1.5;
 }
 
 /* -------------- User Profile   -------------- */
@@ -1692,12 +1758,16 @@ div.admin-panel .description {
 }
 
 #button_field {
-  background: #7EB5F8;
+  /*background: #7EB5F8;
   background-image: -webkit-linear-gradient(top, #7EB5F8, #094793);
   background-image: -moz-linear-gradient(top, #7EB5F8, #094793);
   background-image: -ms-linear-gradient(top, #7EB5F8, #094793);
   background-image: -o-linear-gradient(top, #7EB5F8, #094793);
-  background-image: linear-gradient(to bottom, #7EB5F8, #094793);
+  background-image: linear-gradient(to bottom, #7EB5F8, #094793);*/
+  
+  /*background: repeat-x center center url(http://data.europa.eu/euodp/sites/all/themes/ecopendataheader/images/menubuttonbg.png);*/
+  background: repeat-x center center url(../images/menu_button_background.png);
+  background-size: 2%;
   -webkit-border-radius: 28;
   -moz-border-radius: 28;
   border-radius: 28px;
@@ -1709,7 +1779,7 @@ div.admin-panel .description {
   text-decoration: none;
   position: absolute;
   text-align: center;
-  margin: 0 100px;
+  margin: 0 150px;
   min-width: 100px;
   
 }
@@ -1760,4 +1830,18 @@ a.remove-col {
 
 a.remove-col:hover{
     color: #FF0000 !important;
+}
+
+
+.pane-menu-menu-actions-new-document,
+.pane-menu-menu-actions-new-tool,
+.pane-menu-menu-actions-new-example,
+.pane-menu-menu-actions-new-tool-and-exampl,
+.pane-views-0a76094a302cdad23d99583d2e18041f,
+.pane-views-b52b3dda501a263a78f6e21873b80f9f {
+	border-bottom: 1px solid #b4b4b4;
+}
+
+.views-exposed-widget {
+	float: inherit !important;
 }
