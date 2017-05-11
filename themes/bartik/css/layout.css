@@ -21,7 +21,7 @@ body,
   margin-left: auto;
   margin-right: auto;*/
   
-  width: 100%;
+  /*width: 100%;*/
   margin-left: 20px;
   margin-right: 10px;
 }
@@ -38,6 +38,7 @@ body,
 .region-header {
   float: right; /* LTR */
   margin: 0 5px 10px;
+  width: 30%;
 }
 .with-secondary-menu .region-header {
   margin-top: 3em;
@@ -66,7 +67,7 @@ body,
   position: relative;
 }
 .one-sidebar #content {
-  width: 720px;
+  width: 73%;
 }
 .two-sidebars #content {
   width: 480px;
@@ -80,7 +81,7 @@ body,
   width: 240px;
 }
 #main-wrapper {
-  min-height: 450px;
+  min-height: 550px;
 }
 #content .section,
 .sidebar .section {
@@ -96,7 +97,8 @@ body,
   width: 280px;
 }
 #footer-wrapper {
-  padding: 35px 5px 30px;
+  /*padding: 35px 5px 30px;*/
+  padding: 10px 20px 10px;
 }
 .region-footer-firstcolumn,
 .region-footer-secondcolumn,
@@ -109,4 +111,8 @@ body,
   width: 100%;
   margin-left: 0px;
   /*min-width: 920px*/
+}
+
+.tittle-salmon {
+	color: #F38089;
 }

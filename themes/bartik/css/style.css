@@ -2,7 +2,7 @@
 /* ---------- Overall Specifications ---------- */
 
 html {
-	padding: 0px 250px;
+	padding: 0px 15%;
     background-color: #bbbbbb;
 }
 
@@ -31,6 +31,7 @@ h5,
 h6 {
   margin: 1.0em 0 0.5em;
   font-weight: inherit;
+  font-family: Georgia, Times, "Times New Roman", serif; 
 }
 h1 {
   font-size: /*1.357em*/2em !important;
@@ -65,7 +66,7 @@ var {
   padding: 0 0.4em;
   font-size: 0.857em;
   /*font-family: Menlo, Consolas, "Andale Mono", "Lucida Console", "Nimbus Mono L", "DejaVu Sans Mono", monospace, "Courier New";*/
-  font-family: Georgia, serif;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
 }
 code {
   background-color: #f2f2f2;
@@ -118,9 +119,9 @@ body,
 .ui-widget,
 .comment-form label {
   /*font-family: Georgia, "Times New Roman", Times, serif;*/
-  font-family: Georgia, serif;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
 }
-#header,
+
 #footer-wrapper,
 #skip-link,
 ul.contextual-links,
@@ -134,19 +135,22 @@ p.comment-time,
 table,
 .breadcrumb {
   /*font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;*/
-  font-family: Georgia, serif;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
+}
+
+#header {
+	font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
 }
 
 #header img{
 	height: 100px;
-    
 }
 
 input,
 textarea,
 select,
 a.button {
-  font-family: /*"Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif*/Georgia, serif;
+  font-family: /*"Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif*/"Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif; 
 }
 
 /* ------------------ Reset Styles ------------------ */
@@ -192,7 +196,7 @@ table {
   border-spacing: 0;
   font-size: 0.857em;
   margin: 10px 0;
-  width: 100%;
+  /*width: 100%;*/
 }
 table table {
   font-size: 1em;
@@ -203,7 +207,7 @@ table table {
 table tr th {
   /*background: #757575;
   background: rgba(0, 0, 0, 0.51);*/
-  font-family: Georgia, serif;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif; 
   color: #505d8c !important;
   background: #F5F5F5;
   border-bottom-style: none;
@@ -219,7 +223,7 @@ table tbody tr th {
 }
 tr td,
 tr th {
-  padding: 4px 9px;
+  /*padding: 4px 9px;*/
   /*border: 1px solid #fff;*/
   text-align: left; /* LTR */
   border: 1px solid #BBB;
@@ -319,7 +323,7 @@ ul.tips {
 }
 #logo {
   float: left; /* LTR */
-  padding: 15px 15px 15px 10px; /* LTR */
+  padding: 15px 1px 15px 15px; /* LTR */
 }
 #name-and-slogan {
   float: left; /* LTR */
@@ -328,11 +332,12 @@ ul.tips {
 }
 #site-name {
   font-size: 1.821em;
-  color: #686868;
+  color: #847780;
   line-height: 1;
 }
 h1#site-name {
   margin: 0;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
 }
 #site-name a {
   font-weight: normal;
@@ -341,7 +346,7 @@ h1#site-name {
   font-size: 0.929em;
   margin-top: 7px;
   word-spacing: 0.1em;
-  font-style: italic;
+  font-weight: bold;
 }
 /* Region header blocks. */
 .region-header .block {
@@ -515,7 +520,8 @@ h1#site-name {
   background: #48537E !important;*/
   
   /*background: repeat-x center center url(http://data.europa.eu/euodp/sites/all/themes/ecopendataheader/images/menubuttonbg.png);*/
-  background: repeat-x center center url(../images/menu_button_background.png);
+  /*background: repeat-x center center url(../images/menu_button_background.png);*/
+  background: #C53864;
   font-weight: bold;
   padding: 0 8px;
   
@@ -541,7 +547,8 @@ h1#site-name {
   background: rgba(255, 255, 255, 0.95);*/
   
   background: #fff;
-  color: #505d8c;
+  /*color: #505d8c;*/
+  color: #C53864;
   font-weight: bold;
   text-decoration: underline;
   
@@ -570,7 +577,7 @@ h1#site-name {
   border-bottom: none;
   
   background: #fff;
-  color: #505d8c;
+  color: #C53864;
   font-weight: bold;
 }
 .featured #main-menu-links li a:active,
@@ -738,7 +745,8 @@ h1#page-title {
   margin: 0 0 1em;
 }
 ul.links {
-  color: #68696b;
+  /*color: #68696b;*/
+  color: #444444;
   font-size: 0.821em;
 }
 .node-unpublished {
@@ -922,11 +930,14 @@ ul.links {
   color: #696969;
   font-size: 0.857em;
   text-align: center;
+  background: #eeeeee !important;
+  border-top: 6px solid #F38089;
 }
 #footer-wrapper a {
   /*color: #fcfcfc;
   color: rgba(255, 255, 255, 0.8);*/
-  color: #094793;
+  color: #003399;
+  font-weight: bold;
 }
 #footer-wrapper a:hover,
 #footer-wrapper a:focus {
@@ -997,7 +1008,7 @@ ul.links {
 }
 #footer {
   letter-spacing: 0.2px;
-  margin-top: 30px;
+  margin-top: 20px;
   border-top: 1px solid #555;
   border-color: rgba(255, 255, 255, 0.15);
 }
@@ -1039,7 +1050,7 @@ ul.links {
 
 .tabs {
   /*font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;*/
-  font-family: Georgia, serif;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif; 
   margin-bottom: 20px;
 }
 .tabs ul.primary {
@@ -1151,9 +1162,9 @@ div.messages {
   margin-bottom: -1px;
   padding-top: 1px;
   
-  background-color: #e9eff3;
+  background-color: /*#e9eff3*/#F5F5F5;
   border-top: 1px #CCC;
-  color: #646464 !important;
+  color: /*#646464*/#444444 !important;
   padding-bottom: 2px;
   font-family: "Lucida Sans Unicode", "Lucida Grande", Tahoma, Verdana, Arial, sans-serif;
   line-height: 1.5;
@@ -1165,7 +1176,7 @@ div.messages {
   
   /* Added */
   
-  color: #646464 !important;
+  color: #666666 !important;
   font-family: "Lucida Sans Unicode", "Lucida Grande", Tahoma, Verdana, Arial, sans-serif;
   line-height: 1.5;
 }
@@ -1234,10 +1245,11 @@ a.button:active {
 
 fieldset {
   background: #ffffff;
-  border: 1px solid #cccccc;
-  margin-top: 10px;
+  border: 1px solid #bbbbbb;
+  /*margin-top: 10px;
   margin-bottom: 32px;
-  padding: 0 0 10px;
+  padding: 0 0 10px;*/
+  padding: 0px;
   position: relative;
   top: 12px; /* Offsets the negative margin of legends */
   -khtml-border-radius: 4px;
@@ -1245,6 +1257,12 @@ fieldset {
   -webkit-border-radius: 4px;
   border-radius: 4px;
 }
+
+fieldset.collapsible{
+   margin-bottom: 10px !important;
+   margin-top: 20px !important;
+}
+
 .fieldset-wrapper {
   margin-top: /*25px*/10px;
 }
@@ -1284,20 +1302,21 @@ fieldset.collapsed {
   border-radius: 0;
 }
 fieldset legend {
-  background: #dbdbdb;
-  border: 1px solid #ccc;
+  background: #eeeeee;
+  border: 1px solid #bbbbbb;
   border-bottom: none;
   color: #3b3b3b;
   display: block;
   height: 2em;
   left: -1px; /* LTR */
-  font-family: /*"Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif*/Georgia, serif;
+  font-family: /*"Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif*/"Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif; 
+  font-size: 0.857em;
   line-height: 2;
   padding: 0;
   /*position: absolute;*/
   text-indent: 10px;
   text-shadow: 0 1px 0 #fff;
-  top: -12px;
+  /*top: -12px;*/
   width: 100%;
   -khtml-border-radius-topleft: 4px;
   -moz-border-radius-topleft: 4px;
@@ -1307,6 +1326,9 @@ fieldset legend {
   -moz-border-radius-topright: 4px;
   -webkit-border-top-right-radius: 4px;
   border-top-right-radius: 4px;
+}
+span.fieldset-legend {
+	padding-left: 10px !important;
 }
 fieldset.collapsed legend {
   -khtml-border-radius: 4px;
@@ -1771,7 +1793,7 @@ div.admin-panel .description {
   -webkit-border-radius: 28;
   -moz-border-radius: 28;
   border-radius: 28px;
-  font-family: Georgia, serif;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif; 
   color: #ffffff;
   font-size: 15px;
   padding: 10px 20px 10px 20px;
@@ -1844,4 +1866,86 @@ a.remove-col:hover{
 
 .views-exposed-widget {
 	float: inherit !important;
+}
+
+.views-widget-edit-field-type-tid , 
+.views-widget-edit-keys,
+.views-widget-edit-field-type-example-tid {
+	border: 1px solid #bbbbbb;
+	border-radius: 4px;
+	padding: 0 !important;
+	margin-top: 10px !important;
+	margin-bottom: 10px !important;
+}
+
+.views-widget {
+	/*padding: 10px;*/
+}
+
+label[for="edit-field-type-tid"], 
+label[for="edit-keys"],
+label[for="edit-field-type-example-tid"] {
+	background: #eeeeee;
+	padding: 0 10px;
+	color: #3b3b3b;
+	font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
+	line-height: 2;
+	text-indent: 10px;
+	text-shadow: 0 1px 0 #fff;
+	padding-left: 15px;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+}
+
+#edit-keys {
+	margin: 10px !important;
+}
+
+#edit-submit {
+	margin-top: 10px !important;
+	margin-bottom: 10px !important;
+}
+
+#edit-basic {
+	border: 1px solid #bbbbbb;
+	border-radius: 4px;
+	padding: 0 !important;
+	margin-top: 10px !important;
+	margin-bottom: 10px !important;
+}
+
+.criterion {
+	margin-right: 0 !important;
+}
+
+.views-exposed-form .views-exposed-widget {
+	padding: 0px !important;
+}
+
+.bef-select-as-checkboxes {
+  padding-left: 5px;
+}
+
+.field-label {
+	font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
+}
+
+.pane-content {
+	display: inline;
+}
+
+.field-label-hidden{
+	display: -webkit-inline-box;
+}
+
+#custom_tooltip {
+	font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Arial, sans-serif;
+	font-size: 87.5%;
+	position: relative;
+	right: -80%;
+	top: -600px;
+	word-wrap: break-word;
+	display: block;
+	width: 20%;
+	color: #444444;
 }

@@ -23,9 +23,9 @@
 	$cad = "'ID','Data Type','Visualisation Type','Interaction Type','Num Tools'";
 	foreach ($result as $record) {
 		if ($record->field_interactivity_tid == 60)
-			$cad .= "," . "Static" . "," . $record->field_data_type_tid . "," . $record->field_data_visualisation_type_tid . "," . $record->field_interactivity_tid . "," . $record->num_tools ;
+			$cad .= "," . "Static" . "," . $record->field_data_type_tid . "," . $record->field_data_visualisation_type_tid . ",Static," . $record->num_tools ;
 		else
-			$cad .= "," . "Dynamic" . "," . $record->field_data_type_tid . "," . $record->field_data_visualisation_type_tid . "," . $record->field_interactivity_tid . "," . $record->num_tools ;
+			$cad .= "," . "Dynamic" . "," . $record->field_data_type_tid . "," . $record->field_data_visualisation_type_tid . ",Dynamic," . $record->num_tools ;
 	}
 	
 	echo $cad;

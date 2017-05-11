@@ -1,15 +1,9 @@
 google.charts.load('current', {'packages':['corechart', 'table']});
-  google.charts.setOnLoadCallback(drawSeriesChart);
-  
-  /*var mapping = {"71":"Geospatial Data", "72":"Network Data", "70":"Numerical Data", "73":"Textual Data", "141":"Other",
-				"74":"Maps", "75":"Relations/dependencies", "76":"Lines", "77":"Dots/bubbles", "78":"Bars", "79":"Grids", "80":"Shapes/proportions", "81":"Infographics", 142":"Other",
-				"60":"Static", "61":"Dynamic"};*/
+google.charts.setOnLoadCallback(drawSeriesChart);
 
-	var mapping = {"69": "", "70":"Numerical Data", "71":"Geospatial Data", "72":"Network Data", "73":"Textual Data", "74":"Other", "75": "",
-		"76": "", "77":"Maps", "78":"Relations/dependencies", "79":"Lines", "80":"Dots/bubbles", "81":"Bars", "82":"Grids", "83":"Shapes/proportions", "84":"Infographics",  "85":"Other",
-		"60":"Static", "61":"Dynamic"};
-				
-				
+var mapping = {"69": "", "70":"Numerical Data", "71":"Geospatial Data", "72":"Network Data", "73":"Textual Data", "74":"Other", "75": "",
+		"76": "", "77":"Maps", "78":"Relations/ dependencies", "79":"Lines", "80":"Dots/ bubbles", "81":"Bars", "82":"Grids", "83":"Shapes/ proportions", "84":"Infographics",  "85":"Other" };
+
 function drawSeriesChart() {
 	var test = "";
 	
@@ -23,7 +17,7 @@ function drawSeriesChart() {
 		},
 	});
 	
-  //Transform the data received into an array
+  //Transform the data received into an array [Static/Dynamic, data_type, viz_type, interactivity_type, num_tools]
   
   var test_clean = test.split(",");
   var aux_final = [];
@@ -32,7 +26,6 @@ function drawSeriesChart() {
   
   for (i=0; counter<test_clean.length; i++) {
 	  aux_interm = [];
-
 	  for (j=0; j<5; j++) {
 		  if (i!=0) {
 			  if (j!=0 && j!=3) {
@@ -59,55 +52,68 @@ function drawSeriesChart() {
   
   var options = {
 	title: 'Correlation between data type, visualisation type and interaction type of the existing tools',
-	hAxis: {
+	hAxis: { //Data type
 		title: 'Data type',
 		minValue:69,
         maxValue:75,
-        gridlines: { count:7},
+        gridlines: { count:7, color: '#ffffff'},
+		ticks: [{v:69, f:''}, {v:70, f:'Numerical Data'}, {v:71, f:'Geospatial Data'}, {v:72, f:'Network Data'}, {v:73, f:'Textual Data'}, {v:74, f:'Other'}, {v:75, f:''} ],
+		textStyle: { 
+			fontName: 'Arial',
+			fontSize: 12,
+			color: '#444444'
+		}
 	},
-	vAxis : {
-        title: 'Visualisation type'+'\n'+'\n'+'\n'+'\n'+'\n'+'\n'+'\n'+'\n',
+	vAxis : { //Visualisation type
+        title: 'Visualisation type',
         minValue:76,
-        maxValue:85,
-        gridlines: { count:10},
+        maxValue:86,
+        gridlines: { count:11, color: '#ffffff'},
+		ticks: [ {v:76, f:''}, {v:77, f:'Maps'}, {v:78, f:'Relations/ dependencies'}, {v:79, f:'Lines'}, {v:80, f:'Dots/ bubbles'}, {v:81, f:'Bars'}, {v:82, f:'Grids'}, {v:83, f:'Shapes/ proportions'}, {v:84, f:'Infographics'}, {v:85, f:'Other'}, {v:86, f:''} ],
+		textStyle: { 
+			fontName: 'Arial',
+			fontSize: 12,
+			color: '#444444'
+		}
     },
-	/*vAxis: {title: 'Visualisation type'},*/
 	bubble: {
       textStyle: {
-        fontSize: 12,
-        fontName: 'Georgia',
-        color: 'white',
-        bold: false,
-        italic: false,
-		auraColor: 'none'
+        color: 'none',
       }},
-	  width: '100%'
+	  width: '100%',
+	  tooltip: {
+            trigger: 'none'
+        },
+	legend: {
+      textStyle: {
+        fontSize: 12,
+        fontName: 'Arial',
+		color: '#444444'
+      }},
+	  width: '100%',
+	  tooltip: {
+            trigger: 'none'
+        }
   };
+    
+  function handler1(e) {
+	var h = data.getValue(e.row, 1);
+	var v = data.getValue(e.row, 2);
+	var interaction = data.getValue(e.row, 3);
+	var ntools = data.getValue(e.row, 4);
+	
+	$('#custom_tooltip').html('<div><b>Data type: </b>' + mapping[h] + '</div><div><b>Visualisation type: </b>' + mapping[v] + '</div><div><b>Interaction type: </b>' + interaction + '</div><div><b>Number of tools: </b>' + ntools + '</div>').fadeIn('slow');
+  }
+    
+  function handler2(e) {
+	$('#custom_tooltip').fadeOut('fast');
+  }
 
   //var table = new google.visualization.Table(document.getElementById('tools_matrix2'));
   var chart = new google.visualization.BubbleChart(document.getElementById('tools_matrix'));
-  
-  google.visualization.events.addListener(chart, 'ready', axes_values);
-  
+  google.visualization.events.addListener(chart, 'onmouseover', handler1);
+  google.visualization.events.addListener(chart, 'onmouseout', handler2);
   chart.draw(data, options);
-  
-  /*var container1 = $('[dir="ltr"]');
-  var container2 = $('[aria-label="A chart."]');
-  
-  container1[0].setAttribute("style", "100%");
-  container2[0].setAttribute("width", "100%");*/
-  //table.draw(data, {});
-}
-
-function axes_values() {
-	var keys = Object.keys(mapping);
-	
-	$.each($("text"),function(){
-		if (keys.indexOf($(this).text()) >= 0 ) {
-			$(this).text(mapping[$(this).text()]);
-		}
-	});
-
 }
 
 //To draw again the chart in case that the user zooms in or out the window
