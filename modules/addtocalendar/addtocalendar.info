@@ -1,0 +1,12 @@
+name = Add To Calendar
+description = 'Add to calendar button to be used for event page.'
+core = 7.x
+dependencies[] = date:date
+dependencies[] = field_formatter_settings:field_formatter_settings
+
+; Information added by Drupal.org packaging script on 2017-02-03
+version = "7.x-1.0"
+core = "7.x"
+project = "addtocalendar"
+datestamp = "1486107786"
+

@@ -3,6 +3,10 @@ google.charts.setOnLoadCallback(drawSeriesChart);
 
 var mapping = {"69": "", "70":"Numerical Data", "71":"Geospatial Data", "72":"Network Data", "73":"Textual Data", "74":"Other", "75": "",
 		"76": "", "77":"Maps", "78":"Relations/ dependencies", "79":"Lines", "80":"Dots/ bubbles", "81":"Bars", "82":"Grids", "83":"Shapes/ proportions", "84":"Infographics",  "85":"Other" };
+		
+var mapping_inverse = {"70":"70", "71":"71", "72":"72", "73":"73", "74":"141",
+		"77":"74", "78":"75", "79":"76", "80":"77", "81":"78", "82":"79", "83":"80", "84":"81",  "85":"142",
+		"Static":"60", "Dynamic":"61"};
 
 function drawSeriesChart() {
 	var test = "";
@@ -80,22 +84,25 @@ function drawSeriesChart() {
       textStyle: {
         color: 'none',
       }},
-	  width: '100%',
-	  tooltip: {
-            trigger: 'none'
-        },
+	colors: ['f59832', 'c53864'],
+	width: '100%',
+	tooltip: {
+        trigger: 'none'
+    },
 	legend: {
-      textStyle: {
+		textStyle: {
         fontSize: 12,
         fontName: 'Arial',
 		color: '#444444'
-      }},
-	  width: '100%',
-	  tooltip: {
-            trigger: 'none'
-        }
+    }}
+	/* ,
+	width: '100%',
+	tooltip: {
+        trigger: 'none'
+    } */
   };
-    
+   
+  //When the mouse is over the bubble, show on the custom_tooltip the values of the data type, visualisation type and interaction type
   function handler1(e) {
 	var h = data.getValue(e.row, 1);
 	var v = data.getValue(e.row, 2);
@@ -104,15 +111,30 @@ function drawSeriesChart() {
 	
 	$('#custom_tooltip').html('<div><b>Data type: </b>' + mapping[h] + '</div><div><b>Visualisation type: </b>' + mapping[v] + '</div><div><b>Interaction type: </b>' + interaction + '</div><div><b>Number of tools: </b>' + ntools + '</div>').fadeIn('slow');
   }
-    
+  
+  //When the mouse is out the bubble, remove the information on the custom_tooltip
   function handler2(e) {
 	$('#custom_tooltip').fadeOut('fast');
+  }
+  
+  //When the user clicks the bubble, redirect to the page that shows the tools that fulfil the criteria
+  function redirect() {
+	  var e = chart.getSelection()[0];
+	  
+	  var h = data.getValue(e.row, 1);
+	  var v = data.getValue(e.row, 2);
+	  var i = data.getValue(e.row, 3);
+	  var data_type = mapping_inverse[h];
+	  var viz_type = mapping_inverse[v];
+	  var inter_type = mapping_inverse[i];
+	  window.location.href = "http://52.50.205.146:8890/data_visualisation_catalogue/tools_page/"+data_type+"/"+viz_type+"/"+inter_type;
   }
 
   //var table = new google.visualization.Table(document.getElementById('tools_matrix2'));
   var chart = new google.visualization.BubbleChart(document.getElementById('tools_matrix'));
   google.visualization.events.addListener(chart, 'onmouseover', handler1);
   google.visualization.events.addListener(chart, 'onmouseout', handler2);
+  google.visualization.events.addListener(chart, 'select', redirect);
   chart.draw(data, options);
 }
 

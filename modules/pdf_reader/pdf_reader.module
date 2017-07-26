@@ -154,18 +154,22 @@ function pdf_reader_theme($existing, $type, $theme, $path) {
 function theme_pdf_reader($variables) {
   $file_url = isset($variables['file']['uri']) ? file_create_url($variables['file']['uri']) : $variables['file']['value'];
 
+  if ($variables['settings']['download'] == TRUE) {
+    $output = l(t('Click here to download the PDF file.'), $file_url, array('attributes' => array('class' => 'pdf-reader-download-link')));
+  }
+  
   switch ($variables['settings']['renderer']) {
     case 'google':
-      $output = '<iframe id="pdf_reader" src="//docs.google.com/viewer?embedded=true&url='
+      $output .= '<iframe id="pdf_reader" src="//docs.google.com/viewer?embedded=true&url='
           . urlencode($file_url)
           . '" width="' . $variables['settings']['pdf_width']
           . '" height="' . $variables['settings']['pdf_height']
           . '" scrolling="no'
-          . '" style="border: none;"></iframe>';
+          . '" style="border: none;margin-top: 3%;"></iframe>';
       break;
 
     case 'direct':
-      $output = '<object id="pdf_reader" data="' . $file_url . '#view=Fit' . '" '
+      $output .= '<object id="pdf_reader" data="' . $file_url . '#view=Fit' . '" '
           . 'type="application/pdf' . '" '
           . 'width="' . $variables['settings']['pdf_width'] . '" '
           . 'height="' . $variables['settings']['pdf_height'] . '">'
@@ -181,13 +185,11 @@ function theme_pdf_reader($variables) {
 
     case 'pdf-js':
       _pdf_reader_load_pdf_js($file_url);
-      $output = theme('pdf_js');
+      $output .= theme('pdf_js');
       break;
   }
 
-  if ($variables['settings']['download'] == TRUE) {
-    $output .= l(t('Click here to download the PDF file.'), $file_url, array('attributes' => array('class' => 'pdf-reader-download-link')));
-  }
+  
 
   if ($variables['settings']['colorbox'] == TRUE) {
     $html = $output;
